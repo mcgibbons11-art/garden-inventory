@@ -26,6 +26,9 @@ class InventorySystem {
       this.loadInventory();
     }
     
+    // Initialize listener for messages FROM Unity
+    this.initUnityMessageListener();
+    
     this.log('Inventory system initialized with', this.inventory.size, 'items');
   }
 
@@ -58,6 +61,92 @@ class InventorySystem {
    */
   getTaskName(action, itemId = '') {
     return `${this.taskPrefix}_${action}${itemId ? '_' + itemId : ''}`;
+  }
+
+  /**
+   * Initialize listener for messages FROM Unity
+   */
+  initUnityMessageListener() {
+    window.addEventListener('message', (event) => {
+      try {
+        const message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        
+        if (!message.action) return;
+        
+        this.log('Received message from Unity:', message);
+        this.handleUnityMessage(message);
+      } catch (error) {
+        this.log('Error handling Unity message:', error);
+      }
+    });
+  }
+
+  /**
+   * Handle incoming messages from Unity
+   */
+  handleUnityMessage(message) {
+    const { action, ...params } = message;
+    
+    try {
+      let result;
+      
+      switch (action) {
+        case 'addItem':
+          result = this.addItem(params.item, params.quantity || 1);
+          break;
+          
+        case 'removeItem':
+          result = this.removeItem(params.itemId, params.quantity);
+          break;
+          
+        case 'getInventory':
+          result = this.getInventory();
+          // Send result back to Unity
+          this.sendTaskUpdate('inventory_data_response', 'SetNotActiveToActive');
+          break;
+          
+        case 'getItem':
+          result = this.getItem(params.itemId);
+          break;
+          
+        case 'updateItem':
+          result = this.updateItem(params.itemId, params.updates);
+          break;
+          
+        case 'useItem':
+          result = this.useItem(params.itemId, params.quantity || 1);
+          break;
+          
+        case 'transferItem':
+          result = this.transferItem(params.itemId, params.quantity, params.targetId);
+          break;
+          
+        case 'clearInventory':
+          result = this.clearInventory();
+          break;
+          
+        case 'getCategory':
+          result = this.getItemsByCategory(params.category);
+          break;
+          
+        default:
+          this.log('Unknown action:', action);
+          return;
+      }
+      
+      this.log('Action completed:', action, result);
+      
+      // Trigger UI update if there's a callback
+      if (window.updateUI) {
+        window.updateUI();
+      }
+      
+    } catch (error) {
+      this.log('Error executing action:', action, error.message);
+      
+      // Send error back to Unity
+      this.sendTaskUpdate(`inventory_error_${action}`, 'SetActiveToNotActive');
+    }
   }
 
   /**
@@ -384,10 +473,52 @@ class GardenInventory extends InventorySystem {
   }
 
   registerGardenHandlers() {
-    this.on('PLANT_SEED', (payload) => this.plantSeed(payload));
-    this.on('HARVEST_PLANT', (payload) => this.harvestPlant(payload));
-    this.on('UPGRADE_TOOL', (payload) => this.upgradeTool(payload));
-    this.on('CRAFT_ITEM', (payload) => this.craftItem(payload));
+    // These are internal handlers - not needed anymore since we handle in handleUnityMessage
+  }
+  
+  /**
+   * Override parent's handleUnityMessage to add garden-specific actions
+   */
+  handleUnityMessage(message) {
+    const { action, ...params } = message;
+    
+    try {
+      let result;
+      
+      // Check for garden-specific actions first
+      switch (action) {
+        case 'plantSeed':
+          result = this.plantSeed(params);
+          break;
+          
+        case 'harvestPlant':
+          result = this.harvestPlant(params);
+          break;
+          
+        case 'upgradeTool':
+          result = this.upgradeTool(params);
+          break;
+          
+        case 'craftItem':
+          result = this.craftItem(params);
+          break;
+          
+        default:
+          // Fall back to parent's handling for basic inventory actions
+          return super.handleUnityMessage(message);
+      }
+      
+      this.log('Garden action completed:', action, result);
+      
+      // Trigger UI update
+      if (window.updateUI) {
+        window.updateUI();
+      }
+      
+    } catch (error) {
+      this.log('Error executing garden action:', action, error.message);
+      this.sendTaskUpdate(`garden_error_${action}`, 'SetActiveToNotActive');
+    }
   }
 
   /**
