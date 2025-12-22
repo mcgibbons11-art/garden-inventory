@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Tycoon - Inventory System</title>
+  
+  <!-- Portals SDK - REQUIRED -->
+  <script src="https://portals-labs.github.io/portals-sdk/portalssdk.js?v=10005456"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      position: relative;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    h1 {
+      color: #667eea;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+    }
+
+    .close-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .close-btn:hover {
+      background: #c82333;
+      transform: scale(1.05);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+    }
+
+    .section-title {
+      color: #667eea;
+      margin: 30px 0 15px 0;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 30px;
+      min-height: 300px;
+    }
+
+    .inventory-item {
+      background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+      border: 2px solid #dee2e6;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .inventory-item:hover {
+      border-color: #667eea;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+      background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    }
+
+    .item-icon {
+      font-size: 56px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .item-name {
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .item-quantity {
+      background: #667eea;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      display: inline-block;
+      margin-top: 8px;
+      font-weight: 700;
+    }
+
+    .item-type {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: #adb5bd;
+    }
+
+    .empty-state-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .activity-log {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 250px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      border: 2px solid #e9ecef;
+    }
+
+    .activity-log h3 {
+      margin-bottom: 15px;
+      font-size: 16px;
+      color: #667eea;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;
+    }
+
+    .log-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-time {
+      color: #6c757d;
+      min-width: 60px;
+      font-size: 11px;
+    }
+
+    .log-message {
+      flex: 1;
+      color: #333;
+    }
+
+    .log-icon {
+      font-size: 14px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .inventory-item {
+      animation: fadeIn 0.3s ease;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      padding: 8px 16px;
+      background: #e9ecef;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .filter-tab.active {
+      background: #667eea;
+      color: white;
+      border-color: #5568d3;
+    }
+
+    .filter-tab:hover:not(.active) {
+      background: #dee2e6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        <span>🌱</span>
+        <span>Garden Tycoon Inventory</span>
+      </h1>
+      <button class="close-btn" onclick="closeInventory()">✕ Close</button>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Items</div>
+        <div class="stat-value" id="totalItems">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Slots</div>
+        <div class="stat-value" id="slotsUsed">0/50</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Seeds</div>
+        <div class="stat-value" id="seedCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Plants</div>
+        <div class="stat-value" id="plantCount">0</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">
+      <span>⚡</span>
+      <span>Quick Actions</span>
+    </h2>
+    <div class="controls">
+      <button onclick="addTomatoSeed()">🍅 Add Tomato Seed</button>
+      <button onclick="addCarrotSeed()">🥕 Add Carrot Seed</button>
+      <button onclick="addShovel()">🔨 Add Shovel</button>
+      <button onclick="addFertilizer()">💊 Add Fertilizer</button>
+      <button onclick="addDecoration()">🦩 Add Flamingo</button>
+      <button onclick="plantRandomSeed()">🌱 Plant Seed</button>
+      <button onclick="harvestCrop()">🧺 Harvest</button>
+      <button onclick="clearAll()">🗑️ Clear All</button>
+    </div>
+
+    <h2 class="section-title">
+      <span>🎒</span>
+      <span>Your Inventory</span>
+    </h2>
+
+    <div class="filter-tabs">
+      <div class="filter-tab active" onclick="filterCategory('all')">All</div>
+      <div class="filter-tab" onclick="filterCategory('seeds')">Seeds</div>
+      <div class="filter-tab" onclick="filterCategory('tools')">Tools</div>
+      <div class="filter-tab" onclick="filterCategory('plants')">Plants</div>
+      <div class="filter-tab" onclick="filterCategory('decorations')">Decorations</div>
+      <div class="filter-tab" onclick="filterCategory('fertilizer')">Fertilizer</div>
+    </div>
+
+    <div class="inventory-grid" id="inventoryGrid">
+      <div class="empty-state">
+        <div class="empty-state-icon">📦</div>
+        <div>Your inventory is empty</div>
+        <div style="margin-top: 10px; font-size: 14px;">Add some items to get started!</div>
+      </div>
+    </div>
+
+    <div class="activity-log">
+      <h3>📋 Activity Log</h3>
+      <div id="activityLog"></div>
+    </div>
+  </div>
+
+  <script src="inventory-system.js"></script>
+  <script>
+    // Initialize the garden inventory system
+    const inventory = new GardenInventory({
+      maxSlots: 50,
+      debug: true,
+      taskPrefix: 'garden', // Tasks will be named like 'garden_item_added_tomato-seed'
+      autoSave: true
+    });
+
+    let currentFilter = 'all';
+
+    // Sample item data with icons
+    const ITEM_ICONS = {
+      'tomato-seed': '🍅',
+      'carrot-seed': '🥕',
+      'wheat-seed': '🌾',
+      'corn-seed': '🌽',
+      'shovel': '🔨',
+      'watering-can': '💧',
+      'hoe': '⚒️',
+      'fertilizer': '💊',
+      'flamingo': '🦩',
+      'gnome': '🧙',
+      'fountain': '⛲',
+      'tomato': '🍅',
+      'carrot': '🥕',
+      'wheat': '🌾',
+      'corn': '🌽'
+    };
+
+    // Quick action functions
+    function addTomatoSeed() {
+      inventory.addItem({
+        id: `tomato-seed-${Date.now()}`,
+        name: 'Tomato Seed',
+        type: 'seeds',
+        category: 'seeds',
+        plantType: 'tomato',
+        growthTime: 3600,
+        consumable: true
+      }, 5);
+      updateUI();
+      logActivity('Added 5 Tomato Seeds', '🍅');
+    }
+
+    function addCarrotSeed() {
+      inventory.addItem({
+        id: `carrot-seed-${Date.now()}`,
+        name: 'Carrot Seed',
+        type: 'seeds',
+        category: 'seeds',
+        plantType: 'carrot',
+        growthTime: 2400,
+        consumable: true
+      }, 3);
+      updateUI();
+      logActivity('Added 3 Carrot Seeds', '🥕');
+    }
+
+    function addShovel() {
+      inventory.addItem({
+        id: `shovel-${Date.now()}`,
+        name: 'Garden Shovel',
+        type: 'tools',
+        category: 'tools',
+        level: 1,
+        efficiency: 1.0,
+        consumable: false
+      }, 1);
+      updateUI();
+      logActivity('Added Garden Shovel', '🔨');
+    }
+
+    function addFertilizer() {
+      inventory.addItem({
+        id: `fertilizer-${Date.now()}`,
+        name: 'Super Fertilizer',
+        type: 'fertilizer',
+        category: 'fertilizer',
+        boost: 1.5,
+        consumable: true
+      }, 10);
+      updateUI();
+      logActivity('Added 10 Super Fertilizer', '💊');
+    }
+
+    function addDecoration() {
+      inventory.addItem({
+        id: `flamingo-${Date.now()}`,
+        name: 'Pink Flamingo',
+        type: 'decorations',
+        category: 'decorations',
+        beautyPoints: 50,
+        consumable: false
+      }, 1);
+      updateUI();
+      logActivity('Added Pink Flamingo decoration', '🦩');
+    }
+
+    function plantRandomSeed() {
+      const seeds = inventory.getItemsByCategory('seeds');
+      if (seeds.length === 0) {
+        alert('You don\'t have any seeds!');
+        logActivity('Tried to plant but no seeds available', '⚠️');
+        return;
+      }
+
+      const randomSeed = seeds[Math.floor(Math.random() * seeds.length)];
+      const plotId = `plot-${Math.floor(Math.random() * 20)}`;
+
+      try {
+        inventory.plantSeed({
+          seedId: randomSeed.id,
+          plotId: plotId
+        });
+        updateUI();
+        logActivity(`Planted ${randomSeed.name} in ${plotId}`, '🌱');
+      } catch (error) {
+        alert(error.message);
+        logActivity(`Failed to plant: ${error.message}`, '❌');
+      }
+    }
+
+    function harvestCrop() {
+      const harvestedItem = {
+        id: `tomato-${Date.now()}`,
+        name: 'Fresh Tomato',
+        type: 'plants',
+        category: 'plants',
+        sellPrice: 25
+      };
+
+      inventory.harvestPlant({
+        plotId: 'plot-1',
+        produce: {
+          item: harvestedItem,
+          quantity: 3
+        }
+      });
+      
+      updateUI();
+      logActivity('Harvested 3 Fresh Tomatoes from plot-1', '🧺');
+    }
+
+    function clearAll() {
+      if (confirm('Are you sure you want to clear your entire inventory?')) {
+        const result = inventory.clearInventory();
+        updateUI();
+        logActivity(`Cleared ${result.cleared} items from inventory`, '🗑️');
+      }
+    }
+
+    function closeInventory() {
+      // Send task update before closing
+      inventory.sendTaskUpdate('garden_inventory_closed', 'SetActiveToCompleted');
+      
+      // Close the iframe using Portals SDK
+      PortalsSdk.closeIframe();
+      
+      logActivity('Closed inventory', '✕');
+    }
+
+    function filterCategory(category) {
+      currentFilter = category;
+      
+      // Update active tab
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      updateUI();
+    }
+
+    function updateUI() {
+      const inventoryData = inventory.getInventory();
+      const grid = document.getElementById('inventoryGrid');
+
+      // Update stats
+      document.getElementById('totalItems').textContent = inventoryData.count;
+      document.getElementById('slotsUsed').textContent = `${inventoryData.count}/${inventoryData.maxSlots}`;
+      document.getElementById('seedCount').textContent = inventory.getItemsByCategory('seeds').length;
+      document.getElementById('plantCount').textContent = inventory.getItemsByCategory('plants').length;
+
+      // Filter items
+      let items = inventoryData.items;
+      if (currentFilter !== 'all') {
+        items = items.filter(item => item.category === currentFilter);
+      }
+
+      // Render inventory
+      if (items.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <div>${currentFilter === 'all' ? 'Your inventory is empty' : `No ${currentFilter} found`}</div>
+            <div style="margin-top: 10px; font-size: 14px;">Add some items to get started!</div>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = items.map(item => {
+        const icon = ITEM_ICONS[item.id.split('-')[0]] || '📦';
+        return `
+          <div class="inventory-item" onclick="selectItem('${item.id}')">
+            <span class="item-icon">${icon}</span>
+            <div class="item-name">${item.name}</div>
+            <div class="item-type">${item.type}</div>
+            <div class="item-quantity">×${item.quantity}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectItem(itemId) {
+      const item = inventory.getItem(itemId);
+      if (!item) return;
+
+      const action = confirm(`What would you like to do with ${item.name}?\n\nOK = Use/Remove one\nCancel = View details`);
+      
+      if (action) {
+        try {
+          if (item.consumable || item.type === 'seeds' || item.type === 'fertilizer') {
+            inventory.useItem(itemId, 1);
+            logActivity(`Used 1 ${item.name}`, '✓');
+          } else {
+            inventory.removeItem(itemId, 1);
+            logActivity(`Removed 1 ${item.name}`, '✓');
+          }
+          updateUI();
+        } catch (error) {
+          alert(error.message);
+        }
+      } else {
+        const details = `
+          Name: ${item.name}
+          Type: ${item.type}
+          Quantity: ${item.quantity}
+          ${item.level ? `Level: ${item.level}` : ''}
+          ${item.efficiency ? `Efficiency: ${item.efficiency}x` : ''}
+          ${item.growthTime ? `Growth Time: ${item.growthTime}s` : ''}
+        `;
+        alert(details.trim());
+      }
+    }
+
+    function logActivity(message, icon = '•') {
+      const logDiv = document.getElementById('activityLog');
+      const now = new Date();
+      const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+      
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-icon">${icon}</span>
+        <span class="log-time">${time}</span>
+        <span class="log-message">${message}</span>
+      `;
+      
+      logDiv.insertBefore(entry, logDiv.firstChild);
+      
+      // Keep only last 20 entries
+      while (logDiv.children.length > 20) {
+        logDiv.removeChild(logDiv.lastChild);
+      }
+    }
+
+    // Initialize UI
+    updateUI();
+    logActivity('Inventory system initialized', '🚀');
+
+    // Notify Unity that inventory is ready
+    inventory.sendTaskUpdate('garden_inventory_ready', 'SetNotActiveToCompleted');
+  </script>
+</body>
+</html>
