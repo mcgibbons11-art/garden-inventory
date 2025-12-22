@@ -64,21 +64,72 @@ class InventorySystem {
   }
 
   /**
-   * Initialize listener for messages FROM Unity
+   * Initialize listener for messages FROM Portals using the SDK
    */
   initUnityMessageListener() {
-    window.addEventListener('message', (event) => {
-      try {
-        const message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+    // Use the Portals SDK message listener
+    if (typeof PortalsSdk !== 'undefined' && PortalsSdk.setMessageListener) {
+      PortalsSdk.setMessageListener((message) => {
+        this.log('Received message from Portals:', message);
+        this.handlePortalsMessage(message);
+      });
+      this.log('Portals SDK message listener registered');
+    } else {
+      // Fallback to window.postMessage for testing
+      window.addEventListener('message', (event) => {
+        this.handlePortalsMessage(event.data);
+      });
+      this.log('Using fallback message listener (PortalsSdk not available)');
+    }
+  }
+
+  /**
+   * Handle incoming messages from Portals
+   */
+  handlePortalsMessage(message) {
+    try {
+      let data = message;
+      
+      // Handle string messages
+      if (typeof data === 'string') {
+        // Check if it's a number (variable value like "820")
+        if (!isNaN(data) && data.trim() !== '') {
+          this.log('Received numeric value from Portals:', data);
+          // Store as a generic variable
+          this.syncPortalsVariable('_lastValue', parseFloat(data));
+          
+          // Trigger UI update
+          if (window.updateUI) {
+            window.updateUI();
+          }
+          return;
+        }
         
-        if (!message.action) return;
-        
-        this.log('Received message from Unity:', message);
-        this.handleUnityMessage(message);
-      } catch (error) {
-        this.log('Error handling Unity message:', error);
+        // Try parsing as JSON
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          // Not JSON, plain string - could be plain variable
+          this.log('Received string value from Portals:', data);
+          this.syncPortalsVariable('_lastString', data);
+          
+          if (window.updateUI) {
+            window.updateUI();
+          }
+          return;
+        }
       }
-    });
+      
+      // If it's an object with an action, handle it
+      if (data && data.action) {
+        this.handleUnityMessage(data);
+      } else {
+        this.log('Received data without action:', data);
+      }
+      
+    } catch (error) {
+      this.log('Error handling Portals message:', error);
+    }
   }
 
   /**
@@ -129,6 +180,11 @@ class InventorySystem {
           result = this.getItemsByCategory(params.category);
           break;
           
+        case 'syncVariable':
+          // Sync a Portals variable to inventory state
+          result = this.syncPortalsVariable(params.name, params.value);
+          break;
+          
         default:
           this.log('Unknown action:', action);
           return;
@@ -147,6 +203,33 @@ class InventorySystem {
       // Send error back to Unity
       this.sendTaskUpdate(`inventory_error_${action}`, 'SetActiveToNotActive');
     }
+  }
+
+  /**
+   * Sync a Portals variable to the inventory
+   * Example: Gold count, seed count, etc.
+   */
+  syncPortalsVariable(variableName, value) {
+    this.log(`Syncing Portals variable: ${variableName} = ${value}`);
+    
+    // Store in a special variables object
+    if (!this.portalsVariables) {
+      this.portalsVariables = {};
+    }
+    
+    this.portalsVariables[variableName] = value;
+    
+    // You can trigger custom logic based on variable name
+    // For example, auto-update gold display, check achievements, etc.
+    
+    return { synced: variableName, value };
+  }
+
+  /**
+   * Get a synced Portals variable
+   */
+  getPortalsVariable(variableName) {
+    return this.portalsVariables ? this.portalsVariables[variableName] : null;
   }
 
   /**
