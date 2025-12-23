@@ -90,6 +90,10 @@ class InventorySystem {
     try {
       let data = message;
       
+      // Log ALL incoming messages for debugging
+      console.log('[InventorySystem] RAW MESSAGE:', message);
+      console.log('[InventorySystem] MESSAGE TYPE:', typeof message);
+      
       // Ignore MetaMask and other non-Portals messages
       if (data && (data.target === 'metamask-inpage' || data.target)) {
         return;
@@ -97,6 +101,8 @@ class InventorySystem {
       
       // Handle string messages
       if (typeof data === 'string') {
+        this.log('Received STRING:', data);
+        
         // Check if it's a number (variable value like "820")
         if (!isNaN(data) && data.trim() !== '') {
           this.log('Received numeric value from Portals:', data);
@@ -113,6 +119,7 @@ class InventorySystem {
         // Try parsing as JSON
         try {
           data = JSON.parse(data);
+          this.log('Parsed JSON from string:', data);
         } catch (e) {
           // Not JSON, plain string - could be plain variable
           this.log('Received string value from Portals:', data);
@@ -126,16 +133,22 @@ class InventorySystem {
       }
       
       // If it's already an object (Portals sends parsed JSON objects)
-      if (data && typeof data === 'object' && data.action) {
-        this.log('Received command from Portals:', data.action);
-        this.handleUnityMessage(data);
-      } else if (data && typeof data === 'object') {
-        // Object without action - might be internal Portals message, ignore
-        this.log('Ignoring object without action');
+      if (data && typeof data === 'object') {
+        console.log('[InventorySystem] OBJECT RECEIVED:', data);
+        console.log('[InventorySystem] Has action?', !!data.action);
+        console.log('[InventorySystem] Object keys:', Object.keys(data));
+        
+        if (data.action) {
+          this.log('Received command from Portals:', data.action);
+          this.handleUnityMessage(data);
+        } else {
+          // Object without action - might be internal Portals message, ignore
+          this.log('Ignoring object without action, keys:', Object.keys(data));
+        }
       }
       
     } catch (error) {
-      this.log('Error handling Portals message:', error);
+      console.error('[InventorySystem] Error handling Portals message:', error);
     }
   }
 
