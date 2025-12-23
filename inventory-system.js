@@ -90,26 +90,24 @@ class InventorySystem {
     try {
       let data = message;
       
-      // Log ALL incoming messages for debugging
+      // Log for debugging
       console.log('[InventorySystem] RAW MESSAGE:', message);
       console.log('[InventorySystem] MESSAGE TYPE:', typeof message);
       
       // Ignore MetaMask and other non-Portals messages
-      if (data && (data.target === 'metamask-inpage' || data.target)) {
+      if (data && typeof data === 'object' && (data.target === 'metamask-inpage' || data.target)) {
         return;
       }
       
-      // Handle string messages
+      // Portals ALWAYS sends messages as STRINGS (per documentation)
       if (typeof data === 'string') {
-        this.log('Received STRING:', data);
+        this.log('Received STRING from Portals:', data);
         
         // Check if it's a number (variable value like "820")
         if (!isNaN(data) && data.trim() !== '') {
-          this.log('Received numeric value from Portals:', data);
-          // Store as a generic variable
+          this.log('Numeric value:', data);
           this.syncPortalsVariable('_lastValue', parseFloat(data));
           
-          // Trigger UI update
           if (window.updateUI) {
             window.updateUI();
           }
@@ -120,35 +118,31 @@ class InventorySystem {
         try {
           data = JSON.parse(data);
           this.log('Parsed JSON from string:', data);
+          
+          // Now check if it has an action
+          if (data && data.action) {
+            this.log('Executing command:', data.action);
+            this.handleUnityMessage(data);
+          }
         } catch (e) {
-          // Not JSON, plain string - could be plain variable
-          this.log('Received string value from Portals:', data);
+          // Not JSON, plain string
+          this.log('Plain string value:', data);
           this.syncPortalsVariable('_lastString', data);
           
           if (window.updateUI) {
             window.updateUI();
           }
-          return;
         }
-      }
-      
-      // If it's already an object (Portals sends parsed JSON objects)
-      if (data && typeof data === 'object') {
-        console.log('[InventorySystem] OBJECT RECEIVED:', data);
-        console.log('[InventorySystem] Has action?', !!data.action);
-        console.log('[InventorySystem] Object keys:', Object.keys(data));
-        
+      } else if (data && typeof data === 'object') {
+        // Fallback for testing with postMessage
+        console.log('[InventorySystem] OBJECT (testing mode):', data);
         if (data.action) {
-          this.log('Received command from Portals:', data.action);
           this.handleUnityMessage(data);
-        } else {
-          // Object without action - might be internal Portals message, ignore
-          this.log('Ignoring object without action, keys:', Object.keys(data));
         }
       }
       
     } catch (error) {
-      console.error('[InventorySystem] Error handling Portals message:', error);
+      console.error('[InventorySystem] Error handling message:', error);
     }
   }
 
