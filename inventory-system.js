@@ -90,6 +90,11 @@ class InventorySystem {
     try {
       let data = message;
       
+      // Ignore MetaMask and other non-Portals messages
+      if (data && (data.target === 'metamask-inpage' || data.target)) {
+        return;
+      }
+      
       // Handle string messages
       if (typeof data === 'string') {
         // Check if it's a number (variable value like "820")
@@ -120,11 +125,13 @@ class InventorySystem {
         }
       }
       
-      // If it's an object with an action, handle it
-      if (data && data.action) {
+      // If it's already an object (Portals sends parsed JSON objects)
+      if (data && typeof data === 'object' && data.action) {
+        this.log('Received command from Portals:', data.action);
         this.handleUnityMessage(data);
-      } else {
-        this.log('Received data without action:', data);
+      } else if (data && typeof data === 'object') {
+        // Object without action - might be internal Portals message, ignore
+        this.log('Ignoring object without action');
       }
       
     } catch (error) {
